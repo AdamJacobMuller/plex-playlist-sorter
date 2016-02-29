@@ -3,24 +3,29 @@ import requests
 import datetime
 import time
 import argparse
+import json
 
 import xml.etree.ElementTree as ET
-
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--address", help="address of plex")
 parser.add_argument("--playlist", help="playlist id")
 args = parser.parse_args()
 
-items = requests.get("%s/playlists/%s/items" % (args.address, args.playlist))
+url = "%s/playlists/%s/items" % (args.address, args.playlist)
+items = requests.get(url)
 
-items_xml = ET.fromstring(items.text)
+
+items_xml = ET.fromstring(items.text.encode("ascii", errors="ignore"))
 
 videos = items_xml.findall("./Video")
 
 avt = []
 
 for video in videos:
+    if 'originallyAvailableAt' not in video.attrib:
+        print json.dumps(video.attrib, indent=4)
+        continue
     avt.append((time.mktime(datetime.datetime.strptime(video.attrib['originallyAvailableAt'], "%Y-%m-%d").timetuple()), video.attrib['playlistItemID']))
 
 avts = sorted(avt, key=lambda tup: tup[0])
